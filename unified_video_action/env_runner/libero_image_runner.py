@@ -32,10 +32,11 @@ import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.obs_utils as ObsUtils
 
 
-current_dir = os.getcwd()
-parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
-libero_path = os.path.join(parent_dir, "LIBERO")
-sys.path.append(libero_path)
+# current_dir = os.getcwd()
+# parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
+# libero_path = os.path.join(parent_dir, "LIBERO")
+# sys.path.append(libero_path)
+sys.path.insert(0, "/pfs/pfs-uaDOJM/home/xupeng/LIBERO")
 from libero.libero.envs.bddl_base_domain import TASK_MAPPING
 
 
@@ -102,7 +103,7 @@ class LiberoImageRunner(BaseImageRunner):
         dataset_path = task_dir
         robosuite_fps = 20
         steps_per_render = max(robosuite_fps // fps, 1)
-
+        # import ipdb; ipdb.set_trace()
         # read from dataset
         env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path)
 
@@ -251,8 +252,8 @@ class LiberoImageRunner(BaseImageRunner):
         self.env_init_fn_dills = env_init_fn_dills
         self.fps = fps
         self.crf = crf
-        self.n_obs_steps = n_obs_steps
-        self.n_action_steps = n_action_steps
+        self.n_obs_steps = n_obs_steps  # 16
+        self.n_action_steps = n_action_steps  # 8
         self.past_action = past_action
         self.max_steps = max_steps
         self.rotation_transformer = rotation_transformer
@@ -343,7 +344,7 @@ class LiberoImageRunner(BaseImageRunner):
                     action_dict, lambda x: x.detach().to("cpu").numpy()
                 )
 
-                action = np_action_dict["action"]  # (1, 8, 10)
+                action = np_action_dict["action"]  # (4, 8, 10)
                 if not np.all(np.isfinite(action)):
                     print(action)
                     raise RuntimeError("Nan or Inf action")
@@ -351,15 +352,15 @@ class LiberoImageRunner(BaseImageRunner):
                 # step env
                 env_action = action
                 if self.abs_action:
-                    env_action = self.undo_transform_action(action)
-
+                    env_action = self.undo_transform_action(action)  # (4,8,7)
+                # import ipdb; ipdb.set_trace()
                 obs, reward, done, info = env.step(env_action)
 
                 for i in range(len(reward)):
                     if reward[i] == 1:
                         done[i] = True
 
-                done = np.all(done)
+                done = np.all(done)  # 4 envs are done 
 
                 # past_action = action
                 past_action_list.append(action)
@@ -419,9 +420,9 @@ class LiberoImageRunner(BaseImageRunner):
 
         d_rot = action.shape[-1] - 4
         pos = action[..., :3]
-        rot = action[..., 3 : 3 + d_rot]
+        rot = action[..., 3 : 3 + d_rot]  # (4,8,6)
         gripper = action[..., [-1]]
-        rot = self.rotation_transformer.inverse(rot)
+        rot = self.rotation_transformer.inverse(rot)  # (4,8,3)
         uaction = np.concatenate([pos, rot, gripper], axis=-1)
 
         if raw_shape[-1] == 20:

@@ -27,7 +27,7 @@ def main(checkpoint, output_dir, device):
 
     # load checkpoint
     payload = torch.load(open(checkpoint, "rb"), pickle_module=dill)
-    cfg = payload["cfg"]
+    cfg = payload["cfg"]  # config elements 
 
     # set seed
     seed = cfg.training.seed
@@ -40,23 +40,24 @@ def main(checkpoint, output_dir, device):
         
     # configure workspace
     cls = hydra.utils.get_class(cfg.model._target_)
-    workspace = cls(cfg, output_dir=output_dir)
+    workspace = cls(cfg, output_dir=output_dir)  #  initalization with not matched pretrained model path
     workspace: BaseWorkspace
-
+    # import ipdb; ipdb.set_trace()
     print("Loaded checkpoint from %s" % checkpoint)
-    workspace.load_payload(payload, exclude_keys=None, include_keys=None)
+    workspace.load_payload(payload, exclude_keys=None, include_keys=None)  # load trained model paras
     
-    
+    # import ipdb; ipdb.set_trace()
     # get policy from workspace
-    policy = workspace.ema_model
+    policy = workspace.ema_model  # check updates of ema model paras
     policy.to(device)
-    policy.eval()
-
+    policy.eval()  # set to eval mode 
+    # import ipdb; ipdb.set_trace()
     env_runners = load_env_runner(cfg, output_dir)
 
     if "libero" in cfg.task.name:
         step_log = {}
         for env_runner in env_runners:
+            # import ipdb; ipdb.set_trace()
             runner_log = env_runner.run(policy)
             step_log.update(runner_log)
             print(step_log)
@@ -70,7 +71,7 @@ def main(checkpoint, output_dir, device):
         runner_log = step_log
     else:
         env_runner = env_runners
-        runner_log = env_runner.run(policy)
+        runner_log = env_runner.run(policy)  # in each env, run policy and get log
 
     # dump log to json
     json_log = dict()

@@ -57,7 +57,7 @@ class PushTImageEnv(PushTEnv):
 
     def render(self, mode):
         assert mode == "rgb_array"
-
+        # import ipdb; ipdb.set_trace()   
         if self.render_cache is None:
             self._get_obs()
 

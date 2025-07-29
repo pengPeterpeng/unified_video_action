@@ -200,6 +200,7 @@ class PushTEnv(gym.Env):
         return info
 
     def _render_frame(self, mode):
+        # import ipdb; ipdb.set_trace()
         if self.window is None and mode == "human":
             pygame.init()
             pygame.display.init()

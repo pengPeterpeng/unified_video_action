@@ -12,6 +12,7 @@ def load_env_runner(cfg, output_dir):
         for file in hdf5_files:
             # configure env
             env_runner: BaseImageRunner
+            # import ipdb; ipdb.set_trace()
             env_runner = hydra.utils.instantiate(
                 cfg.task.env_runner, task_dir=file, output_dir=output_dir
             )

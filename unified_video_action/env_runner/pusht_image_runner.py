@@ -137,8 +137,8 @@ class PushTImageRunner(BaseImageRunner):
         self.env_init_fn_dills = env_init_fn_dills
         self.fps = fps
         self.crf = crf
-        self.n_obs_steps = n_obs_steps
-        self.n_action_steps = n_action_steps
+        self.n_obs_steps = n_obs_steps  # 16
+        self.n_action_steps = n_action_steps  # 8
         self.past_action = past_action
         self.max_steps = max_steps
         self.tqdm_interval_sec = tqdm_interval_sec
@@ -146,6 +146,10 @@ class PushTImageRunner(BaseImageRunner):
     def run(self, policy: BaseImagePolicy, **kwargs):
         device = policy.device
         env = self.env
+
+        # import ipdb; ipdb.set_trace()
+        # debug one env step process
+        # env = self.env_fns[0]()
 
         # plan for rollout
         n_envs = len(self.env_fns)
@@ -172,6 +176,7 @@ class PushTImageRunner(BaseImageRunner):
             # init envs
             env.call_each("run_dill_function", args_list=[(x,) for x in this_init_fns])
 
+            # import ipdb; ipdb.set_trace()
             # start rollout
             obs = env.reset()
 
@@ -199,10 +204,10 @@ class PushTImageRunner(BaseImageRunner):
                 obs_dict = dict_apply(
                     np_obs_dict, lambda x: torch.from_numpy(x).to(device=device)
                 )
-
+                # import ipdb; ipdb.set_trace()
                 # run policy
                 with torch.no_grad():
-                    action_dict = policy.predict_action(obs_dict, **kwargs)
+                    action_dict = policy.predict_action(obs_dict, **kwargs)  # block tqdm to debug intermiate results
 
                 # device_transfer
                 np_action_dict = dict_apply(
@@ -214,7 +219,7 @@ class PushTImageRunner(BaseImageRunner):
                 # step env
                 obs, reward, done, info = env.step(action)
                 # obs['image'] (56, 2, 3, 96, 96)
-                done = np.all(done)
+                done = np.all(done)  # done for all envs
 
                 # past_action = action
                 past_action_list.append(action)
@@ -224,8 +229,8 @@ class PushTImageRunner(BaseImageRunner):
                 # update pbar
                 pbar.update(action.shape[1])
             pbar.close()
-
-            all_video_paths[this_global_slice] = env.render()[this_local_slice]
+            # import ipdb; ipdb.set_trace()
+            all_video_paths[this_global_slice] = env.render()[this_local_slice]  # results[:slice]
             all_rewards[this_global_slice] = env.call("get_attr", "reward")[
                 this_local_slice
             ]
