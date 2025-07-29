@@ -114,8 +114,9 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
 
         if cfg.task.task_type == "multiple_datasets":
             dataset: UmiMultiDataset
-            dataset = hydra.utils.instantiate(cfg.task.dataset)
-            train_dataloader = dataset.get_dataloader()
+            dataset = hydra.utils.instantiate(cfg.task.dataset)  # init process
+            train_dataloader = dataset.get_dataloader()  # reset bs and num_workers
+            # import ipdb; ipdb.set_trace()
             val_dataset = dataset.split_unused_episodes()
             val_dataloader = val_dataset.get_dataloader()
             dataset.set_datasets_attribute("random_img_sampling", True)
@@ -131,6 +132,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
         else:
             # configure dataset
             dataset: BaseImageDataset
+            # import ipdb; ipdb.set_trace()
             dataset = hydra.utils.instantiate(cfg.task.dataset)
             train_dataloader = DataLoader(dataset, **cfg.dataloader)
 
@@ -232,6 +234,10 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
             cfg.training.checkpoint_every = 1
             cfg.training.val_every = 1
             cfg.training.sample_every = 1
+        
+        # # vis single data 
+        # dataset.visualize_sample_combined(50000)
+        # import ipdb; ipdb.set_trace()
 
         # training loop
         for local_epoch_idx in range(cfg.training.num_epochs):
@@ -253,6 +259,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
                     # resize image
                     batch = resize_image(cfg, batch)
                     # compute loss
+                    # import ipdb; ipdb.set_trace()
                     if (
                         "deepspeed_config" in cfg.training
                         and cfg.training.deepspeed_config is not None
@@ -266,6 +273,9 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
 
                     # step optimizer
                     if self.global_step % cfg.training.gradient_accumulate_every == 0:
+                        # gradient clipping after lr settings
+                        grad_norm = accelerator.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
                         self.optimizer.step()
                         self.optimizer.zero_grad()
                         self.lr_scheduler.step()
@@ -297,6 +307,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
                         "global_step": self.global_step,
                         "epoch": self.epoch,
                         "lr": self.lr_scheduler.get_last_lr()[0],
+                        "grad_norm": grad_norm.item() if 'grad_norm' in locals() else None,
                     }
 
                     is_last_batch = batch_idx == (len(train_dataloader) - 1)
@@ -321,6 +332,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
 
             # ========= evaluate val video generation =========
             if cfg.model.policy.autoregressive_model_params.predict_video:
+                # import ipdb; ipdb.set_trace()
                 fvd_log = test_video_fvd(
                     cfg,
                     policy,
@@ -336,7 +348,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
                 cfg.model.policy.action_model_params.predict_action
                 and "env_runner" not in cfg.task
             ):
-                ## if has similartor, skip this
+                ## if has simulator, skip this
                 act_log = test_action_l2(
                     cfg,
                     policy,
@@ -351,6 +363,7 @@ class TrainUnifiedVideoActionWorkspace(BaseWorkspace):
             if (
                 cfg.model.policy.action_model_params.predict_action
                 and "env_runner" in cfg.task
+                and cfg.task.name != 'libero10'  # skip libero10 env rollout
             ):
                 if (self.epoch % cfg.training.rollout_every) == 0:
                     runner_log = env_rollout(cfg, env_runners, policy)

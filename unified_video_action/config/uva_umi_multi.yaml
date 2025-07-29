@@ -6,7 +6,7 @@ defaults:
   - model: uva
 
 dataloader:
-  batch_size: 32
+  batch_size: 32  # not set here, will be set in task config
   num_workers: 8
   persistent_workers: false
   pin_memory: true
@@ -28,8 +28,8 @@ training:
   lr_warmup_steps: 1000
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
-  resume: true
+  num_epochs: 100 # 3050 # affect lr scheduler
+  resume: false # true
   rollout_every: 1
   sample_every: 5
   seed: 42
@@ -44,7 +44,7 @@ checkpoint:
   save_last_snapshot: false
   topk:
     monitor_key: val_action_l2_distances
-    format_str: epoch={epoch:04d}-val_action_l2_distances={val_action_l2_distances:.3f}.ckpt
+    format_str: epoch_{epoch:04d}-val_action_l2_distances_{val_action_l2_distances:.3f}.ckpt
     k: 5
     mode: min
 
@@ -60,7 +60,7 @@ ema:
 logging:
   group: null
   id: null
-  mode: online
+  mode: online  # offline
   name: train_uva_umi_multi
   project: unified_video_action
   resume: true

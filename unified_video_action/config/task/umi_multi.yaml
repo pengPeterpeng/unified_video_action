@@ -17,18 +17,24 @@ dataset:
     cup_arrangement_0:
       include_episode_num: -1 # -1 means all episodes
       mask_mirror: True
-    towel_folding_0:
-      include_episode_num: -1
-      mask_mirror: False
-    mouse_arrangement_0:
-      include_episode_num: -1
-      mask_mirror: False
+    # towel_folding_0:
+    #   include_episode_num: -1
+    #   mask_mirror: False
+    # mouse_arrangement_0:
+    #   include_episode_num: -1
+    #   mask_mirror: False
 
   zarr_path: "" # Will be overridden in the initialization function
   normalizer_type: none
   language_emb_model: clip
   # The rest should be inherited from umi_lazy_dataset that are kept the same for all the datasets.
-
+  # set bs and num_workers for umi training
+  dataloader_cfg:
+    batch_size: 20 # 56
+    num_workers: 10 # 14
+    persistent_workers: false
+    pin_memory: true
+    shuffle: true
 
 camera_obs_latency: 0.125
 robot_obs_latency: 0.0001
